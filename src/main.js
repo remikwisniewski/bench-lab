@@ -139,6 +139,50 @@ function showScores() {
   showGauge();
 }
 
+/**
+ * Gauges on start-up: when the page opens, the scores count up from zero and
+ * the needle sweeps round to them, like a car's dials when you turn the key.
+ * @param {Record<TestKind, number>} target
+ */
+function startUp(target) {
+  if (!target[dialTest] && target.single) dialTest = "single";
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    gaugeSvg.classList.remove("is-live");
+    shown = { ...target };
+    $("[data-score=multi]").textContent = formatPoints(target.multi);
+    $("[data-score=single]").textContent = formatPoints(target.single);
+    showGauge();
+  };
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches || document.hidden;
+  if (still || (!target.multi && !target.single)) {
+    finish();
+    return;
+  }
+  gaugeSvg.classList.add("is-live");
+  const duration = 1400;
+  const begin = performance.now();
+  const frame = (/** @type {number} */ now) => {
+    const t = Math.min(1, (now - begin) / duration);
+    const eased = 1 - (1 - t) ** 3;
+    if (finished) return;
+    if (t >= 1) return finish();
+    shown = { multi: target.multi * eased, single: target.single * eased };
+    for (const kind of /** @type {TestKind[]} */ (["multi", "single"])) {
+      $(`[data-score=${kind}]`).textContent = target[kind]
+        ? Math.round(shown[kind]).toLocaleString("en-US")
+        : "–";
+    }
+    showGauge();
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  // Browsers pause animation frames in background tabs: never leave the scores blank.
+  setTimeout(finish, duration + 300);
+}
+
 // ---------- Running a test ----------
 
 const render = /** @type {HTMLCanvasElement} */ ($("[data-render]"));
@@ -397,14 +441,10 @@ $("[data-share]").addEventListener("click", async (event) => {
 // A shared link shows someone else's scores until you run your own.
 const shared = decodeCard(location.hash);
 if (shared) {
-  $("[data-score=multi]").textContent = formatPoints(shared.multi ?? 0);
-  $("[data-score=single]").textContent = formatPoints(shared.single ?? 0);
-  shown = { multi: shared.multi ?? 0, single: shared.single ?? 0 };
-  if (!shown.multi && shown.single) dialTest = "single";
-  showGauge();
+  startUp({ multi: shared.multi ?? 0, single: shared.single ?? 0 });
   statusEl.textContent = `Showing a shared result: ${yourLabel({ ...shared, threads: shared.threads })}${shared.browser ? ` · ${shared.browser}` : ""}`;
 } else {
-  showScores();
+  startUp({ ...best });
 }
 
 if (!crossOriginIsolated) {
