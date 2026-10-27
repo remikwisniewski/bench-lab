@@ -193,17 +193,91 @@ main {
   color: var(--muted);
 }
 
-.test__class {
-  margin: 6px 0 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--accent);
+.test--gauge .test__head {
+  margin-bottom: 4px;
 }
 
-.test__class.is-empty {
-  font-size: 0.85rem;
-  font-weight: 400;
-  color: var(--muted);
+.gauge {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.gauge__track {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 16;
+}
+
+.gauge__band {
+  fill: none;
+  stroke-width: 10;
+}
+
+.gauge__tick {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.gauge__major {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+
+.gauge__label {
+  font: 600 11px var(--mono);
+  fill: var(--ink);
+}
+
+.gauge__units {
+  font: 8px var(--mono);
+  fill: var(--muted);
+}
+
+.gauge__needle {
+  transform-box: view-box;
+  transform-origin: 120px 118px;
+  transform: rotate(-210deg);
+  transition: transform 1.6s cubic-bezier(0.22, 1.25, 0.36, 1);
+  fill: #ff3b30;
+  filter: drop-shadow(0 0 3px rgba(255, 59, 48, 0.6));
+}
+
+.gauge__hub {
+  fill: var(--ink);
+}
+
+.gauge__readout {
+  font: 600 20px var(--mono);
+  fill: var(--ink);
+}
+
+.gauge__unit {
+  font: 10px var(--mono);
+  fill: var(--muted);
+}
+
+.gauge__headline {
+  margin: 0;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.gauge__detail {
+  margin: 2px 0 0;
+  min-height: 1.2em;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gauge__needle {
+    transition: none;
+  }
 }
 
 .start {
@@ -323,35 +397,6 @@ select,
   color: var(--ink);
 }
 
-/* Ranking */
-.ranking {
-  display: grid;
-  gap: 6px;
-  margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.rank {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px 10px;
-  font-size: 0.82rem;
-}
-
-.rank__name {
-  overflow: hidden;
-  color: var(--body);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.rank__points {
-  font-family: var(--mono);
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-
 .rank__bar {
   grid-column: 1 / -1;
   height: 6px;
@@ -364,36 +409,6 @@ select,
   display: block;
   height: 100%;
   background: #4b5563;
-}
-
-.rank.is-you .rank__name {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.rank.is-you .rank__bar span {
-  background: var(--accent);
-}
-
-.rank.is-reference .rank__bar span {
-  background: var(--blue);
-}
-
-.rank.is-standard .rank__name {
-  color: var(--ink);
-}
-
-.rank__hardware {
-  grid-column: 1 / -1;
-  margin-top: -2px;
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-
-.ranking__note {
-  margin: 10px 0 0;
-  font-size: 0.75rem;
-  color: var(--muted);
 }
 
 /* ---------- Stage ---------- */

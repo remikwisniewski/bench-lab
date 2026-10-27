@@ -7,7 +7,8 @@ import {
   IMAGE,
   TESTS,
   formatDuration,
-  hardwareClass,
+  dialScale,
+  millionRaysPerSecond,
   points,
   progress,
   remaining,
@@ -19,13 +20,12 @@ import { collectSystem } from "./ui/system.js";
 import { runHardwareTest } from "./bench/hardware.js";
 import { guessDeviceType } from "./core/hardware.js";
 import { createSensors } from "./ui/sensors.js";
-import { buildRanking, loadHistory, saveToHistory, yourLabel } from "./ui/ranking.js";
-import { STANDARDS } from "./data/standards.js";
+import { loadHistory, saveToHistory, yourLabel } from "./ui/ranking.js";
+import { createGauge } from "./ui/gauge.js";
 import {
   drawBracket,
   drawPasses,
   formatPoints,
-  renderRanking,
   renderSensors,
   renderSystem,
   renderGuess,
@@ -76,7 +76,6 @@ cpuInput.addEventListener("change", () => {
   } catch {
     // Not remembered; still used for this visit.
   }
-  refreshRanking();
 });
 
 collectSystem().then(({ sections, summary }) => {
@@ -88,7 +87,6 @@ collectSystem().then(({ sections, summary }) => {
   $("[data-spec=os]").textContent = system.osLabel;
   $("[data-spec=browser]").textContent = system.browser;
   if (!cpuInput.value && system.chip) cpuInput.value = system.chip;
-  refreshRanking();
 });
 
 // ---------- Sensors ----------
@@ -107,52 +105,42 @@ $("[data-reset]").addEventListener("click", () => {
   drawSensors();
 });
 
-// ---------- Ranking ----------
+// ---------- Scores and the speed dial ----------
 
-/** @type {TestKind} */
-let rankingTest = "multi";
 /** @type {Record<TestKind, number>} */
 const best = { multi: 0, single: 0 };
 for (const entry of loadHistory()) best[entry.test] = Math.max(best[entry.test], entry.points);
 
-function refreshRanking() {
-  const test = rankingTest;
-  const label = yourLabel({
-    cpuName: cpuInput.value,
-    gpu: system.gpu,
-    threads: system.threads,
-    os: system.osLabel,
-  });
-  const you = best[test] ? { points: best[test], label } : null;
-  const list = $("[data-ranking]");
-  const note = $("[data-ranking-note]");
-  renderRanking(list, buildRanking(test, you));
-  note.textContent =
-    "Standards are typical scores for each class of PC, estimated from published CPU benchmarks and scaled to Bench Lab with a real i9-9900K run (blue). Your results stay in this browser.";
+/** Scores the dial shows: your own, or a shared link's until you run a test. */
+let shown = { ...best };
+/** @type {TestKind} */
+let dialTest = "multi";
+const updateGauge = createGauge(
+  /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("[data-gauge-svg]")))
+);
+
+function showGauge() {
+  const score = shown[dialTest];
+  updateGauge(dialScale(score, dialTest), score);
+  for (const b of $$("[data-gauge]")) b.setAttribute("aria-pressed", String(b.dataset.gauge === dialTest));
+  $("[data-gauge-headline]").textContent =
+    score > 0 ? `${millionRaysPerSecond(score)} million rays per second` : "Run a test to rev it up";
+  $("[data-gauge-detail]").textContent =
+    score > 0 ? (dialTest === "multi" ? `Traced on all ${threads} threads` : "Traced on one thread") : "";
 }
-for (const button of $$("[data-rank]")) {
+for (const button of $$("[data-gauge]")) {
   button.addEventListener("click", () => {
-    rankingTest = /** @type {TestKind} */ (button.dataset.rank);
-    for (const b of $$("[data-rank]")) b.setAttribute("aria-pressed", String(b === button));
-    refreshRanking();
+    dialTest = /** @type {TestKind} */ (button.dataset.gauge);
+    showGauge();
   });
-}
-
-// ---------- Scores ----------
-
-/** Shows where the scores sit among the hardware standards, multi-core first. */
-function showClass(/** @type {number} */ multi, /** @type {number} */ single) {
-  const el = $("[data-class]");
-  const verdict = hardwareClass(multi, STANDARDS, "multi") ?? hardwareClass(single, STANDARDS, "single");
-  el.textContent = verdict ? verdict.label : "Run a test to see";
-  el.classList.toggle("is-empty", !verdict);
-  el.title = verdict ? `Based on the ${multi > 0 ? "multi-core" : "single-core"} score` : "";
 }
 
 function showScores() {
+  shown = { ...best };
   $("[data-score=multi]").textContent = formatPoints(best.multi);
   $("[data-score=single]").textContent = formatPoints(best.single);
-  showClass(best.multi, best.single);
+  if (!shown[dialTest] && shown.single) dialTest = "single";
+  showGauge();
 }
 
 // ---------- Running a test ----------
@@ -342,9 +330,8 @@ async function start(kind) {
     }
     $("[data-result-line]").textContent = line;
     $("[data-result]").hidden = false;
-    rankingTest = kind;
-    for (const b of $$("[data-rank]")) b.setAttribute("aria-pressed", String(b.dataset.rank === kind));
-    refreshRanking();
+    dialTest = kind;
+    showScores();
   } catch (error) {
     if (/** @type {Error} */ (error).name === "AbortError") {
       statusEl.textContent = "Stopped";
@@ -393,7 +380,9 @@ const shared = decodeCard(location.hash);
 if (shared) {
   $("[data-score=multi]").textContent = formatPoints(shared.multi ?? 0);
   $("[data-score=single]").textContent = formatPoints(shared.single ?? 0);
-  showClass(shared.multi ?? 0, shared.single ?? 0);
+  shown = { multi: shared.multi ?? 0, single: shared.single ?? 0 };
+  if (!shown.multi && shown.single) dialTest = "single";
+  showGauge();
   statusEl.textContent = `Showing a shared result: ${yourLabel({ ...shared, threads: shared.threads })}${shared.browser ? ` · ${shared.browser}` : ""}`;
 } else {
   showScores();
@@ -403,5 +392,4 @@ if (!crossOriginIsolated) {
   console.warn("Not cross-origin isolated: timers are coarse, scores may vary a little more.");
 }
 setButtons();
-refreshRanking();
 drawSensors();

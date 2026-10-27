@@ -92,29 +92,6 @@ export function renderSensors(table, sensors, { compact = false, groups } = {}) 
   table.innerHTML = `${head}<tbody>${body}</tbody>`;
 }
 
-// ---------- Ranking ----------
-
-/**
- * @typedef {{ label: string, points: number, kind?: "you" | "reference" | "standard" | "other", detail?: string }} RankEntry
- */
-
-/** @param {HTMLElement} list @param {RankEntry[]} entries */
-export function renderRanking(list, entries) {
-  const top = Math.max(1, ...entries.map((e) => e.points));
-  list.innerHTML = entries
-    .map(
-      (
-        e
-      ) => `<li class="rank ${e.kind === "you" ? "is-you" : e.kind === "reference" ? "is-reference" : e.kind === "standard" ? "is-standard" : ""}">
-        <span class="rank__name" title="${escapeHtml(e.detail ?? e.label)}">${escapeHtml(e.label)}</span>
-        <span class="rank__points">${formatPoints(e.points)}</span>
-        <span class="rank__bar"><span style="width:${(e.points / top) * 100}%"></span></span>
-        ${e.kind === "standard" && e.detail ? `<span class="rank__hardware">${escapeHtml(e.detail)}</span>` : ""}
-      </li>`
-    )
-    .join("");
-}
-
 // ---------- Stability chart ----------
 
 /** @param {HTMLCanvasElement} canvas @param {number[]} passes */

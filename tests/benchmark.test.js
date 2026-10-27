@@ -5,15 +5,14 @@ import {
   TESTS,
   TILE_SIZE,
   formatDuration,
-  hardwareClass,
+  DIAL_MAX,
+  dialScale,
+  millionRaysPerSecond,
   points,
   progress,
   remaining,
   stability,
 } from "../src/core/benchmark.js";
-import { STANDARDS } from "../src/data/standards.js";
-
-const standards = STANDARDS;
 
 describe("settings", () => {
   it("renders a 720p image in 64-pixel tiles, multi-core at 16× the single-core samples", () => {
@@ -31,36 +30,53 @@ describe("points", () => {
   });
 });
 
-describe("hardwareClass", () => {
-  const standards = STANDARDS;
-
-  it("names the standard a score matches", () => {
-    expect(hardwareClass(3550, standards, "multi")?.label).toBe("Like a Gaming PC");
-    expect(hardwareClass(10400, standards, "multi")?.label).toBe("Like a Workstation");
-    expect(hardwareClass(330, standards, "single")?.label).toBe("Like an Everyday PC");
+describe("dialScale", () => {
+  it("numbers the multi-core dial in thousands, like a rev counter", () => {
+    const dial = dialScale(1792, "multi");
+    expect(dial.max).toBe(DIAL_MAX.multi);
+    expect(dial.unitLabel).toBe("×1,000 pts");
+    expect(dial.marks.map((m) => m.label)).toEqual([
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+    ]);
+    expect(dial.position).toBeCloseTo(1792 / 12000, 5);
   });
 
-  it("places scores between standards, below the first and beyond the last", () => {
-    expect(hardwareClass(4600, standards, "multi")?.label).toBe("Between a Gaming PC and a High-end PC");
-    expect(hardwareClass(1792, standards, "multi")?.label).toBe("Below an Everyday PC");
-    expect(hardwareClass(15000, standards, "multi")?.label).toBe("Beyond a Workstation");
+  it("numbers the single-core dial in hundreds", () => {
+    const dial = dialScale(235, "single");
+    expect(dial.unitLabel).toBe("×100 pts");
+    expect(dial.marks.map((m) => m.label)).toEqual(["0", "1", "2", "3", "4", "5", "6"]);
   });
 
-  it("compares single-core scores against single-core standards", () => {
-    expect(hardwareClass(470, standards, "single")?.label).toBe("Beyond a High-end PC");
+  it("extends the scale for a machine past full scale", () => {
+    const dial = dialScale(30000, "multi");
+    expect(dial.max).toBeGreaterThanOrEqual(33000);
+    expect(dial.position).toBeLessThan(1);
+    expect(dial.marks.length).toBeLessThanOrEqual(13);
+    expect(dial.marks.at(-1)?.at).toBe(1);
   });
 
-  it("needs a score", () => {
-    expect(hardwareClass(0, standards, "multi")).toBeNull();
-    expect(hardwareClass(100, [], "multi")).toBeNull();
+  it("rests at zero with no score", () => {
+    expect(dialScale(0, "multi").position).toBe(0);
   });
 });
 
-describe("standards", () => {
-  it("rise with each class in multi-core", () => {
-    const multi = standards.map((s) => s.multi);
-    expect(multi).toEqual([...multi].sort((a, b) => a - b));
-    expect(new Set(standards.map((s) => s.id)).size).toBe(standards.length);
+describe("millionRaysPerSecond", () => {
+  it("turns points back into the measurement behind them", () => {
+    expect(millionRaysPerSecond(1792)).toBe(17.9);
+    expect(millionRaysPerSecond(235)).toBe(2.4);
+    expect(millionRaysPerSecond(0)).toBe(0);
   });
 });
 

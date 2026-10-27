@@ -30,30 +30,41 @@ export function points(rays, seconds) {
   return Math.round(rays / seconds / POINTS_DIVISOR);
 }
 
+/** The dial's default full scale for each test, in points. */
+export const DIAL_MAX = Object.freeze({ multi: 12_000, single: 600 });
+
 /**
- * Where a score sits among the hardware standards, in plain words:
- * "Like a Gaming PC", "Between a Gaming PC and a High-end PC",
- * "Below an Everyday PC" or "Beyond a Workstation".
+ * A rev-counter style scale for a score: numbered marks from zero to full scale
+ * ("×1000 pts" for multi-core, "×100 pts" for single-core), and where the
+ * needle points. Full scale grows when a machine goes past it, so the needle
+ * never pins against the stop.
  * @param {number} score
- * @param {readonly { name: string, multi: number, single: number }[]} standards
  * @param {TestKind} test
  */
-export function hardwareClass(score, standards, test) {
-  if (!(score > 0) || standards.length === 0) return null;
-  const tiers = [...standards]
-    .map((s) => ({ name: s.name, points: s[test] }))
-    .sort((a, b) => a.points - b.points);
-  const article = (/** @type {string} */ name) => (/^[AEIOU]/i.test(name) ? `an ${name}` : `a ${name}`);
-  // Within 8% of a standard counts as matching it.
-  const close = tiers.find((t) => Math.abs(score / t.points - 1) <= 0.08);
-  if (close) return { label: `Like ${article(close.name)}`, tier: close.name };
-  if (score < tiers[0].points) return { label: `Below ${article(tiers[0].name)}`, tier: null };
-  const top = tiers[tiers.length - 1];
-  if (score > top.points) return { label: `Beyond ${article(top.name)}`, tier: top.name };
-  const upper = /** @type {{ name: string, points: number }} */ (tiers.find((t) => t.points > score));
-  const lower = tiers[tiers.indexOf(upper) - 1];
-  return { label: `Between ${article(lower.name)} and ${article(upper.name)}`, tier: lower.name };
+export function dialScale(score, test) {
+  const unit = test === "multi" ? 1000 : 100;
+  const base = DIAL_MAX[test];
+  const wanted = score > base / 1.1 ? score * 1.1 : base;
+  // At most a dozen numbers round the dial, and full scale lands on one of them.
+  const step = unit * Math.max(1, Math.ceil(wanted / unit / 12));
+  const max = Math.ceil(wanted / step) * step;
+  const marks = [];
+  for (let value = 0; value <= max; value += step)
+    marks.push({ label: String(value / unit), at: value / max });
+  return {
+    max,
+    marks,
+    unitLabel: `×${unit.toLocaleString("en-US")} pts`,
+    position: score > 0 ? Math.min(1, score / max) : 0,
+  };
 }
+
+/**
+ * The score as the measurement behind it: millions of rays traced per second.
+ * @param {number} score
+ */
+export const millionRaysPerSecond = (score) =>
+  score > 0 ? Math.round((score * POINTS_DIVISOR) / 1e5) / 10 : 0;
 
 /**
  * Share of the image finished, from 0 to 1.
