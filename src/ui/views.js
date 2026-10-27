@@ -64,6 +64,8 @@ export function renderSensors(table, sensors, { compact = false, groups } = {}) 
         .map((s) => {
           const r = s.reading;
           const unit = s.unit ? ` ${s.unit}` : "";
+          // The compact table keeps units beside the name, so its number columns stay narrow.
+          const cellUnit = compact ? "" : unit;
           const v = (/** @type {number} */ x) =>
             s.id === "power.charging"
               ? Number.isFinite(x)
@@ -71,9 +73,13 @@ export function renderSensors(table, sensors, { compact = false, groups } = {}) 
                   ? "Yes"
                   : "No"
                 : "–"
-              : `${num(x, s.digits)}${Number.isFinite(x) ? unit : ""}`;
+              : `${num(x, s.digits)}${Number.isFinite(x) ? cellUnit : ""}`;
           const cells = compact ? [r.current, r.max] : [r.current, r.min, r.max, r.average];
-          return `<tr><td title="${escapeHtml(s.hint ?? s.label)}">${escapeHtml(s.label)}</td>${cells
+          const name =
+            compact && s.unit
+              ? `${escapeHtml(s.label)} <span class="unit">${escapeHtml(s.unit)}</span>`
+              : escapeHtml(s.label);
+          return `<tr><td title="${escapeHtml(s.hint ?? s.label)}">${name}</td>${cells
             .map((c) => `<td>${v(c)}</td>`)
             .join("")}</tr>`;
         })

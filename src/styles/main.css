@@ -582,8 +582,18 @@ select,
   padding: 3px 4px;
 }
 
+.sensors--compact {
+  table-layout: fixed;
+}
+
+.sensors--compact th:first-child,
 .sensors--compact td:first-child {
-  max-width: 110px;
+  width: 58%;
+}
+
+.sensors .unit {
+  font-size: 0.68rem;
+  color: var(--muted);
 }
 
 /* ---------- Pages (System, Sensors) ---------- */
