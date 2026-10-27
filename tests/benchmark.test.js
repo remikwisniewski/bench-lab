@@ -7,7 +7,6 @@ import {
   formatDuration,
   DIAL_MAX,
   dialScale,
-  millionRaysPerSecond,
   points,
   progress,
   remaining,
@@ -69,14 +68,6 @@ describe("dialScale", () => {
 
   it("rests at zero with no score", () => {
     expect(dialScale(0, "multi").position).toBe(0);
-  });
-});
-
-describe("millionRaysPerSecond", () => {
-  it("turns points back into the measurement behind them", () => {
-    expect(millionRaysPerSecond(1792)).toBe(17.9);
-    expect(millionRaysPerSecond(235)).toBe(2.4);
-    expect(millionRaysPerSecond(0)).toBe(0);
   });
 });
 

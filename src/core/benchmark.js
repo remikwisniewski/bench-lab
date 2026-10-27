@@ -60,13 +60,6 @@ export function dialScale(score, test) {
 }
 
 /**
- * The score as the measurement behind it: millions of rays traced per second.
- * @param {number} score
- */
-export const millionRaysPerSecond = (score) =>
-  score > 0 ? Math.round((score * POINTS_DIVISOR) / 1e5) / 10 : 0;
-
-/**
  * Share of the image finished, from 0 to 1.
  * @param {number} done tiles finished
  * @param {number} total tiles in the image

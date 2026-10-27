@@ -8,7 +8,6 @@ import {
   TESTS,
   formatDuration,
   dialScale,
-  millionRaysPerSecond,
   points,
   progress,
   remaining,
@@ -124,9 +123,7 @@ function showGauge() {
   updateGauge(dialScale(score, dialTest), score);
   for (const b of $$("[data-gauge]")) b.setAttribute("aria-pressed", String(b.dataset.gauge === dialTest));
   $("[data-gauge-headline]").textContent =
-    score > 0 ? `${millionRaysPerSecond(score)} million rays per second` : "Run a test to rev it up";
-  $("[data-gauge-detail]").textContent =
-    score > 0 ? (dialTest === "multi" ? `Traced on all ${threads} threads` : "Traced on one thread") : "";
+    score > 0 ? (dialTest === "multi" ? `All ${threads} threads` : "One thread") : "Run a test to rev it up";
 }
 for (const button of $$("[data-gauge]")) {
   button.addEventListener("click", () => {

@@ -8,7 +8,7 @@ A CPU benchmark and system monitor that runs in the browser. It path traces a 3D
 ## What it does
 
 - **CPU (Multi Core) and CPU (Single Core).** Renders a 1280 × 720 still life of glass, chrome and matte spheres in golden-hour light. Tiles spiral out from the centre, one per thread, with brackets around the tiles in progress. The score is rays traced per second, divided by 10,000.
-- **Speed dial.** A rev-counter style dial, blue at the slow end and red at the fast end, with your score in thousands of points (hundreds for single-core) and the rays traced per second behind it.
+- **Speed dial.** A rev-counter style dial, blue at the slow end and red at the fast end, with your score in thousands of points (hundreds for single-core).
 - **Minimum test duration.** Repeats the multi-core test for 10 or 30 minutes and charts the score of every pass, to show whether the machine holds its speed once it's hot or starts throttling.
 - **Hardware guess.** Browsers hide the CPU model, so Bench Lab works it out: it measures your cache sizes and counts your real cores, then matches them against the specifications of real CPUs. **Detect** fills in your processor's name.
 - **System summary.** Logical processors, architecture, GPU, WebGL and WebGPU limits, memory, display (with a measured refresh rate), OS and browser, storage, network and battery, with a note on where each value comes from.
