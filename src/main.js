@@ -16,6 +16,8 @@ import {
 import { cleanName, decodeCard, encodeCard } from "./core/result.js";
 import { availableThreads, runTest } from "./bench/pool.js";
 import { collectSystem } from "./ui/system.js";
+import { runHardwareTest } from "./bench/hardware.js";
+import { guessDeviceType } from "./core/hardware.js";
 import { createSensors } from "./ui/sensors.js";
 import {
   buildRanking,
@@ -32,6 +34,7 @@ import {
   renderRanking,
   renderSensors,
   renderSystem,
+  renderGuess,
 } from "./ui/views.js";
 
 /** @typedef {"multi" | "single"} TestKind */
@@ -52,8 +55,19 @@ for (const tab of $$("[data-tab]"))
 // ---------- System ----------
 
 const threads = availableThreads();
-/** @type {{ threads: number, gpu: string, os: string, browser: string, chip: string | null }} */
-let system = { threads, gpu: "–", os: "–", browser: "–", chip: null };
+/** @type {import("./ui/system.js").Summary} */
+let system = {
+  threads,
+  gpu: "–",
+  os: "–",
+  osLabel: "–",
+  browser: "–",
+  chip: null,
+  arch: "",
+  memoryGB: 0,
+  battery: null,
+  mobile: false,
+};
 
 const cpuInput = /** @type {HTMLInputElement} */ ($("[data-cpu-name]"));
 try {
@@ -77,7 +91,7 @@ collectSystem().then(({ sections, summary }) => {
   $("[data-spec=threads]").textContent = String(system.threads);
   $("[data-spec=gpu]").textContent = system.gpu;
   $("[data-spec=gpu]").title = system.gpu;
-  $("[data-spec=os]").textContent = system.os;
+  $("[data-spec=os]").textContent = system.osLabel;
   $("[data-spec=browser]").textContent = system.browser;
   if (!cpuInput.value && system.chip) cpuInput.value = system.chip;
   refreshRanking();
@@ -113,7 +127,7 @@ async function refreshRanking() {
     cpuName: cpuInput.value,
     gpu: system.gpu,
     threads: system.threads,
-    os: system.os,
+    os: system.osLabel,
   });
   const you = best[test] ? { points: best[test], label } : null;
   const list = $("[data-ranking]");
@@ -170,7 +184,74 @@ function setButtons() {
     /** @type {HTMLButtonElement} */ (button).disabled = runningTest !== null && !isThis;
   }
   durationSelect.disabled = runningTest !== null;
+  for (const b of $$("[data-detect], [data-guess-run]"))
+    /** @type {HTMLButtonElement} */ (b).disabled = runningTest !== null || detecting;
+  if (detecting) for (const b of $$("[data-start]")) /** @type {HTMLButtonElement} */ (b).disabled = true;
 }
+
+// ---------- Hardware guess ----------
+
+let detecting = false;
+
+/** Runs the hardware test and shows the guess. Returns the best name, if it's a fair guess. */
+async function detectHardware() {
+  if (detecting || runningTest) return null;
+  detecting = true;
+  setButtons();
+  const status = $("[data-guess-status]");
+  const bar = $("[data-guess-bar]");
+  const detect = $("[data-detect]");
+  detect.textContent = "Testing…";
+  try {
+    const result = await runHardwareTest({
+      threads,
+      gpu: system.gpu,
+      arch: system.arch,
+      memoryGB: system.memoryGB,
+      onProgress: (text, fraction) => {
+        status.textContent = text;
+        bar.style.width = `${fraction * 100}%`;
+      },
+    });
+    const deviceType = guessDeviceType({
+      touchPoints: navigator.maxTouchPoints,
+      screenShort: Math.min(screen.width, screen.height),
+      mobileUa: system.mobile,
+      battery: system.battery,
+      os: system.os,
+    });
+    const body = $("[data-guess-body]");
+    renderGuess(body, result, { deviceType, gpu: system.gpu, memoryGB: system.memoryGB });
+    body.hidden = false;
+    const top = result.candidates[0];
+    const named = top
+      ? top.names.length > 1
+        ? `${top.names.slice(0, -1).join(", ")} or ${top.names.at(-1)}`
+        : top.names[0]
+      : "";
+    status.textContent = top
+      ? `Best guess: ${named} (${top.confidence}% likely). Run it again with nothing else busy if it looks off.`
+      : "Couldn't match a CPU from the table.";
+    return top && top.confidence >= 30 ? top.names[0] : null;
+  } catch (error) {
+    status.textContent = "The hardware test couldn't run in this browser.";
+    console.error(error);
+    return null;
+  } finally {
+    detecting = false;
+    detect.textContent = "Detect";
+    setButtons();
+  }
+}
+
+$("[data-guess-run]").addEventListener("click", () => detectHardware());
+$("[data-detect]").addEventListener("click", async () => {
+  const name = await detectHardware();
+  if (name) {
+    cpuInput.value = name;
+    cpuInput.dispatchEvent(new Event("change"));
+  }
+});
 
 /** One full render of the image. @param {TestKind} kind @param {AbortSignal} signal @param {string} passLabel */
 async function renderPass(kind, signal, passLabel) {
@@ -270,7 +351,7 @@ async function start(kind) {
         threads,
         cpuName: cpuInput.value || undefined,
         gpu: system.gpu,
-        os: system.os,
+        os: system.osLabel,
         browser: system.browser,
       });
       if (placed)
@@ -310,7 +391,7 @@ $("[data-share]").addEventListener("click", async (event) => {
     threads,
     cpuName: cpuInput.value || undefined,
     gpu: system.gpu,
-    os: system.os,
+    os: system.osLabel,
     browser: system.browser,
   });
   const url = `${location.origin}${location.pathname}${hash}`;

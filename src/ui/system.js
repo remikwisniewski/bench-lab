@@ -5,6 +5,19 @@ import { appleChip, cleanGpuName, formatBytes, parseUserAgent } from "../core/de
 
 /** @typedef {{ label: string, value: string, note?: string }} Row */
 /** @typedef {{ title: string, rows: Row[] }} Section */
+/**
+ * @typedef {object} Summary
+ * @property {number} threads
+ * @property {string} gpu
+ * @property {string} os
+ * @property {string} browser
+ * @property {string | null} chip
+ * @property {"x86" | "arm" | ""} arch
+ * @property {number} memoryGB
+ * @property {{ level: number, charging: boolean } | null} battery
+ * @property {boolean} mobile
+ * @property {string} osLabel   OS with its version, for display
+ */
 
 const yes = (/** @type {boolean} */ v) => (v ? "Yes" : "No");
 
@@ -105,7 +118,7 @@ function wasmFeatures() {
 
 /**
  * Everything at once, for the System tab and the benchmark sidebar.
- * @returns {Promise<{ sections: Section[], summary: { threads: number, gpu: string, os: string, browser: string, chip: string | null } }>}
+ * @returns {Promise<{ sections: Section[], summary: Summary }>}
  */
 export async function collectSystem() {
   const ua = parseUserAgent(navigator.userAgent);
@@ -259,5 +272,28 @@ export async function collectSystem() {
     },
   ];
 
-  return { sections, summary: { threads, gpu: gpuName, os, browser, chip } };
+  const archHint = String(hints?.architecture ?? "").toLowerCase();
+  const arch =
+    archHint.startsWith("arm") || chip || ["iOS", "Android"].includes(ua.os)
+      ? "arm"
+      : archHint.startsWith("x86")
+        ? "x86"
+        : "";
+  return {
+    sections,
+    summary: {
+      threads,
+      gpu: gpuName,
+      os: ua.os,
+      browser,
+      chip,
+      arch,
+      memoryGB: Number(memory) || 0,
+      battery: battery ? { level: battery.level, charging: battery.charging } : null,
+      mobile:
+        Boolean(/** @type {any} */ (navigator).userAgentData?.mobile) ||
+        /Mobi|iPhone|Android/i.test(navigator.userAgent),
+      osLabel: os,
+    },
+  };
 }

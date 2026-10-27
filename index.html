@@ -66,15 +66,25 @@
             <dl class="specs">
               <dt><label for="cpu-name">Processor</label></dt>
               <dd>
-                <input
-                  id="cpu-name"
-                  class="cpu-name"
-                  type="text"
-                  maxlength="48"
-                  autocomplete="off"
-                  data-cpu-name
-                  placeholder="Name your CPU (optional)"
-                />
+                <div class="cpu-row">
+                  <input
+                    id="cpu-name"
+                    class="cpu-name"
+                    type="text"
+                    maxlength="48"
+                    autocomplete="off"
+                    data-cpu-name
+                    placeholder="Name your CPU"
+                  />
+                  <button
+                    class="ghost ghost--small"
+                    type="button"
+                    data-detect
+                    title="Guess it with a 15-second hardware test"
+                  >
+                    Detect
+                  </button>
+                </div>
               </dd>
               <dt>Threads</dt>
               <dd data-spec="threads">–</dd>
@@ -150,6 +160,24 @@
             model, on purpose.
           </p>
         </div>
+        <section class="guess" aria-labelledby="guess-title">
+          <div class="guess__head">
+            <div>
+              <h2 id="guess-title">Hardware guess</h2>
+              <p>
+                Browsers hide the CPU model, so Bench Lab works it out. It times memory reads at growing sizes
+                to find the cache sizes, runs work on more and more threads to count real cores, and matches
+                the results against the specifications of real CPUs.
+              </p>
+            </div>
+            <button class="start" type="button" data-guess-run>Run hardware test</button>
+          </div>
+          <div class="statusbar__bar guess__bar"><span data-guess-bar></span></div>
+          <p class="guess__status" data-guess-status aria-live="polite">
+            Takes about 15 seconds. Close other heavy apps for the best guess.
+          </p>
+          <div class="guess__body" data-guess-body hidden></div>
+        </section>
         <div class="summary" data-system></div>
       </section>
 

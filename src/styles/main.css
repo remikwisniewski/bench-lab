@@ -684,6 +684,162 @@ select,
   color: var(--muted);
 }
 
+/* ---------- Hardware guess ---------- */
+
+.cpu-row {
+  display: flex;
+  gap: 6px;
+}
+
+.ghost--small {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.guess {
+  margin-bottom: 20px;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 138, 61, 0.06), transparent 120px), var(--panel);
+}
+
+.guess__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.guess__head h2 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+.guess__head p {
+  max-width: 680px;
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.guess__bar {
+  margin-top: 14px;
+}
+
+.guess__status {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.guess__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.guess__card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+}
+
+.guess__card h3 {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.candidate + .candidate {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.candidate__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.candidate__name {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.candidate:first-child .candidate__name {
+  font-size: 1.15rem;
+}
+
+.candidate__also {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.candidate__pct {
+  font-family: var(--mono);
+  color: var(--accent);
+}
+
+.candidate .rank__bar {
+  margin-top: 6px;
+}
+
+.candidate__why {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.measured {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.measured td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.measured td:first-child {
+  width: 40%;
+  color: var(--muted);
+}
+
+.measured td:last-child {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.guess__chart {
+  grid-column: 1 / -1;
+}
+
+.guess__chart canvas {
+  width: 100%;
+  height: 220px;
+}
+
+.guess__note {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 /* ---------- Smaller screens ---------- */
 
 @media (max-width: 1200px) {
@@ -731,6 +887,14 @@ select,
 
   .page {
     height: auto;
+  }
+
+  .guess__head {
+    flex-direction: column;
+  }
+
+  .guess__body {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .sensors th:not(:first-child):not(:nth-child(2)),

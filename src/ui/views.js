@@ -1,5 +1,7 @@
-// Rendering helpers for the System and Sensors views, the ranking and the
-// stability chart. All text from outside the page goes through escapeHtml.
+// Rendering helpers for the System and Sensors views, the ranking, the
+// hardware guess and the charts. All text from outside the page goes through escapeHtml.
+
+import { formatCacheSize } from "../core/hardware.js";
 
 /** @param {unknown} value */
 export const escapeHtml = (value) =>
@@ -177,5 +179,130 @@ export function drawBracket(ctx, t) {
   ctx.moveTo(x0 + len, y1);
   ctx.lineTo(x0, y1);
   ctx.lineTo(x0, y1 - len);
+  ctx.stroke();
+}
+
+// ---------- Hardware guess ----------
+
+/**
+ * @param {HTMLElement} root
+ * @param {Awaited<ReturnType<typeof import("../bench/hardware.js").runHardwareTest>>} r
+ * @param {{ deviceType: string, gpu: string, memoryGB: number }} extra
+ */
+export function renderGuess(root, r, extra) {
+  const candidates = r.candidates
+    .map((c) => {
+      const [first, ...rest] = c.names;
+      return `<div class="candidate">
+        <div class="candidate__top">
+          <p class="candidate__name">${escapeHtml(first)}</p>
+          <span class="candidate__pct">${c.confidence}%</span>
+        </div>
+        ${rest.length ? `<p class="candidate__also">or ${escapeHtml(rest.join(", "))}: same cores and caches, so the test can't tell them apart</p>` : ""}
+        <span class="rank__bar"><span style="width:${c.confidence}%"></span></span>
+        ${c.reasons.length ? `<p class="candidate__why">Matches: ${escapeHtml(c.reasons.join(", "))}</p>` : ""}
+      </div>`;
+    })
+    .join("");
+
+  const levelNames = r.levels.length >= 3 ? ["L1", "L2", "L3"] : ["L1", "L2", "L3"].slice(0, r.levels.length);
+  const caches = r.levels
+    .map(
+      (l, i) =>
+        `${levelNames[i] ?? `L${i + 1}`} ${formatCacheSize(l.sizeBytes)} · ${l.latencyNs.toFixed(1)} ns`
+    )
+    .join("<br>");
+  const cores = `${r.cores.physical} ${r.cores.hybrid ? "fast " : ""}core${r.cores.physical === 1 ? "" : "s"}, ${r.measured.threads} threads${
+    r.cores.smt ? " (hyper-threading)" : r.cores.hybrid ? " (plus slower efficiency cores)" : ""
+  }`;
+  const rows = [
+    ["Device", extra.deviceType],
+    ["Cores", cores],
+    ["Caches (measured)", caches || "–"],
+    ["Memory latency", Number.isFinite(r.memoryNs) ? `${r.memoryNs.toFixed(0)} ns` : "–"],
+    ["Memory bandwidth", `${r.gbPerSecond.toFixed(1)} GB/s (one thread)`],
+    [
+      "Memory installed",
+      extra.memoryGB ? (extra.memoryGB >= 8 ? "8 GB or more" : `About ${extra.memoryGB} GB`) : "Not exposed",
+    ],
+    ["GPU", extra.gpu],
+  ];
+  root.innerHTML = `
+    <div class="guess__card">
+      <h3>Processor: best guesses</h3>
+      ${candidates || "<p>No match. Your CPU may be newer than the table.</p>"}
+    </div>
+    <div class="guess__card">
+      <h3>What the tests found</h3>
+      <table class="measured"><tbody>${rows
+        .map(
+          ([k, v]) =>
+            `<tr><td>${escapeHtml(k)}</td><td>${k.startsWith("Caches") ? v : escapeHtml(v)}</td></tr>`
+        )
+        .join("")}</tbody></table>
+    </div>
+    <div class="guess__card guess__chart">
+      <h3>Memory latency by size</h3>
+      <canvas width="1200" height="220" data-latency-chart></canvas>
+    </div>
+    <p class="guess__note">A guess from timing, not a readout: other busy apps, power saving and browser limits can move the numbers. The CPU table covers common Intel, AMD and Apple chips from 2018 on.</p>`;
+  drawLatency(
+    /** @type {HTMLCanvasElement} */ (root.querySelector("[data-latency-chart]")),
+    r.points,
+    r.levels
+  );
+}
+
+/**
+ * Time per read against data size, log scale on both axes. Flat steps are caches.
+ * @param {HTMLCanvasElement} canvas
+ * @param {{ bytes: number, ns: number }[]} points
+ * @param {{ sizeBytes: number }[]} levels
+ */
+export function drawLatency(canvas, points, levels) {
+  const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
+  const { width: w, height: h } = canvas;
+  ctx.clearRect(0, 0, w, h);
+  if (points.length < 2) return;
+  const pad = { left: 52, right: 16, top: 12, bottom: 30 };
+  const xs = points.map((p) => Math.log2(p.bytes));
+  const ys = points.map((p) => Math.log10(p.ns));
+  const [x0, x1] = [Math.min(...xs), Math.max(...xs)];
+  const [y0, y1] = [Math.floor(Math.min(...ys) * 2) / 2, Math.ceil(Math.max(...ys) * 2) / 2];
+  const X = (/** @type {number} */ v) => pad.left + ((v - x0) / (x1 - x0)) * (w - pad.left - pad.right);
+  const Y = (/** @type {number} */ v) =>
+    h - pad.bottom - ((v - y0) / (y1 - y0 || 1)) * (h - pad.top - pad.bottom);
+
+  ctx.font = "12px JetBrains Mono, monospace";
+  ctx.fillStyle = "#7c8592";
+  ctx.strokeStyle = "#262b33";
+  for (const ns of [0.5, 1, 2, 5, 10, 20, 50, 100, 200]) {
+    const v = Math.log10(ns);
+    if (v < y0 || v > y1) continue;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, Y(v));
+    ctx.lineTo(w - pad.right, Y(v));
+    ctx.stroke();
+    ctx.fillText(`${ns} ns`, 2, Y(v) + 4);
+  }
+  for (let e = Math.ceil(x0); e <= x1; e += 2) {
+    const label = e >= 20 ? `${2 ** (e - 20)} MB` : `${2 ** (e - 10)} KB`;
+    ctx.fillText(label, X(e) - 14, h - 8);
+  }
+  // Detected cache sizes
+  ctx.strokeStyle = "rgba(90, 176, 255, 0.55)";
+  ctx.setLineDash([4, 4]);
+  for (const l of levels) {
+    const x = X(Math.log2(l.sizeBytes));
+    ctx.beginPath();
+    ctx.moveTo(x, pad.top);
+    ctx.lineTo(x, h - pad.bottom);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.strokeStyle = "#ff8a3d";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  points.forEach((p, i) => (i ? ctx.lineTo(X(xs[i]), Y(ys[i])) : ctx.moveTo(X(xs[i]), Y(ys[i]))));
   ctx.stroke();
 }
