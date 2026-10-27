@@ -1,7 +1,8 @@
-// The ranking: reference runs and your own best results, side by side.
+// Hardware standards, a reference run and your own best results, side by side.
 // Everything stays on this device.
 
 import { REFERENCE } from "../data/reference.js";
+import { STANDARDS } from "../data/standards.js";
 import { deviceLabel } from "../core/device.js";
 
 const HISTORY_KEY = "bench-lab:history";
@@ -39,6 +40,12 @@ export function saveToHistory(entry) {
 export function buildRanking(test, you) {
   /** @type {RankEntry[]} */
   const entries = [
+    ...STANDARDS.map((s) => ({
+      label: s.name,
+      points: s[test],
+      detail: s.hardware,
+      kind: /** @type {const} */ ("standard"),
+    })),
     ...REFERENCE.filter((r) => r.test === test).map((r) => ({
       label: r.label,
       points: r.points,

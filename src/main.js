@@ -7,7 +7,7 @@ import {
   IMAGE,
   TESTS,
   formatDuration,
-  mpRatio,
+  hardwareClass,
   points,
   progress,
   remaining,
@@ -20,6 +20,7 @@ import { runHardwareTest } from "./bench/hardware.js";
 import { guessDeviceType } from "./core/hardware.js";
 import { createSensors } from "./ui/sensors.js";
 import { buildRanking, loadHistory, saveToHistory, yourLabel } from "./ui/ranking.js";
+import { STANDARDS } from "./data/standards.js";
 import {
   drawBracket,
   drawPasses,
@@ -127,7 +128,7 @@ function refreshRanking() {
   const note = $("[data-ranking-note]");
   renderRanking(list, buildRanking(test, you));
   note.textContent =
-    "Blue is a reference run on known hardware. Your results are saved in this browser only.";
+    "Standards are typical scores for each class of PC, estimated from published CPU benchmarks and scaled to Bench Lab with a real i9-9900K run (blue). Your results stay in this browser.";
 }
 for (const button of $$("[data-rank]")) {
   button.addEventListener("click", () => {
@@ -139,11 +140,19 @@ for (const button of $$("[data-rank]")) {
 
 // ---------- Scores ----------
 
+/** Shows where the scores sit among the hardware standards, multi-core first. */
+function showClass(/** @type {number} */ multi, /** @type {number} */ single) {
+  const el = $("[data-class]");
+  const verdict = hardwareClass(multi, STANDARDS, "multi") ?? hardwareClass(single, STANDARDS, "single");
+  el.textContent = verdict ? verdict.label : "Run a test to see";
+  el.classList.toggle("is-empty", !verdict);
+  el.title = verdict ? `Based on the ${multi > 0 ? "multi-core" : "single-core"} score` : "";
+}
+
 function showScores() {
   $("[data-score=multi]").textContent = formatPoints(best.multi);
   $("[data-score=single]").textContent = formatPoints(best.single);
-  const ratio = mpRatio(best.multi, best.single);
-  $("[data-ratio]").textContent = Number.isFinite(ratio) ? ratio.toFixed(2) : "–";
+  showClass(best.multi, best.single);
 }
 
 // ---------- Running a test ----------
@@ -384,8 +393,7 @@ const shared = decodeCard(location.hash);
 if (shared) {
   $("[data-score=multi]").textContent = formatPoints(shared.multi ?? 0);
   $("[data-score=single]").textContent = formatPoints(shared.single ?? 0);
-  const ratio = mpRatio(shared.multi ?? 0, shared.single ?? 0);
-  $("[data-ratio]").textContent = Number.isFinite(ratio) ? ratio.toFixed(2) : "–";
+  showClass(shared.multi ?? 0, shared.single ?? 0);
   statusEl.textContent = `Showing a shared result: ${yourLabel({ ...shared, threads: shared.threads })}${shared.browser ? ` · ${shared.browser}` : ""}`;
 } else {
   showScores();

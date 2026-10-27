@@ -193,8 +193,17 @@ main {
   color: var(--muted);
 }
 
-.test--ratio .test__score {
-  font-size: 1.3rem;
+.test__class {
+  margin: 6px 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.test__class.is-empty {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .start {
@@ -368,6 +377,17 @@ select,
 
 .rank.is-reference .rank__bar span {
   background: var(--blue);
+}
+
+.rank.is-standard .rank__name {
+  color: var(--ink);
+}
+
+.rank__hardware {
+  grid-column: 1 / -1;
+  margin-top: -2px;
+  font-size: 0.72rem;
+  color: var(--muted);
 }
 
 .ranking__note {

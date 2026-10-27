@@ -5,12 +5,15 @@ import {
   TESTS,
   TILE_SIZE,
   formatDuration,
-  mpRatio,
+  hardwareClass,
   points,
   progress,
   remaining,
   stability,
 } from "../src/core/benchmark.js";
+import { STANDARDS } from "../src/data/standards.js";
+
+const standards = STANDARDS;
 
 describe("settings", () => {
   it("renders a 720p image in 64-pixel tiles, multi-core at 16× the single-core samples", () => {
@@ -26,11 +29,38 @@ describe("points", () => {
     expect(points(0, 10)).toBe(0);
     expect(points(100, 0)).toBe(0);
   });
+});
 
-  it("gives the MP ratio to two decimals", () => {
-    expect(mpRatio(2800, 280)).toBe(10);
-    expect(mpRatio(1000, 300)).toBe(3.33);
-    expect(mpRatio(1000, 0)).toBeNaN();
+describe("hardwareClass", () => {
+  const standards = STANDARDS;
+
+  it("names the standard a score matches", () => {
+    expect(hardwareClass(3550, standards, "multi")?.label).toBe("Like a Gaming PC");
+    expect(hardwareClass(10400, standards, "multi")?.label).toBe("Like a Workstation");
+    expect(hardwareClass(330, standards, "single")?.label).toBe("Like an Everyday PC");
+  });
+
+  it("places scores between standards, below the first and beyond the last", () => {
+    expect(hardwareClass(4600, standards, "multi")?.label).toBe("Between a Gaming PC and a High-end PC");
+    expect(hardwareClass(1792, standards, "multi")?.label).toBe("Below an Everyday PC");
+    expect(hardwareClass(15000, standards, "multi")?.label).toBe("Beyond a Workstation");
+  });
+
+  it("compares single-core scores against single-core standards", () => {
+    expect(hardwareClass(470, standards, "single")?.label).toBe("Beyond a High-end PC");
+  });
+
+  it("needs a score", () => {
+    expect(hardwareClass(0, standards, "multi")).toBeNull();
+    expect(hardwareClass(100, [], "multi")).toBeNull();
+  });
+});
+
+describe("standards", () => {
+  it("rise with each class in multi-core", () => {
+    const multi = standards.map((s) => s.multi);
+    expect(multi).toEqual([...multi].sort((a, b) => a - b));
+    expect(new Set(standards.map((s) => s.id)).size).toBe(standards.length);
   });
 });
 

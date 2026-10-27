@@ -31,12 +31,29 @@ export function points(rays, seconds) {
 }
 
 /**
- * How many times faster all cores are than one.
- * @param {number} multi
- * @param {number} single
+ * Where a score sits among the hardware standards, in plain words:
+ * "Like a Gaming PC", "Between a Gaming PC and a High-end PC",
+ * "Below an Everyday PC" or "Beyond a Workstation".
+ * @param {number} score
+ * @param {readonly { name: string, multi: number, single: number }[]} standards
+ * @param {TestKind} test
  */
-export const mpRatio = (multi, single) =>
-  multi > 0 && single > 0 ? Math.round((multi / single) * 100) / 100 : NaN;
+export function hardwareClass(score, standards, test) {
+  if (!(score > 0) || standards.length === 0) return null;
+  const tiers = [...standards]
+    .map((s) => ({ name: s.name, points: s[test] }))
+    .sort((a, b) => a.points - b.points);
+  const article = (/** @type {string} */ name) => (/^[AEIOU]/i.test(name) ? `an ${name}` : `a ${name}`);
+  // Within 8% of a standard counts as matching it.
+  const close = tiers.find((t) => Math.abs(score / t.points - 1) <= 0.08);
+  if (close) return { label: `Like ${article(close.name)}`, tier: close.name };
+  if (score < tiers[0].points) return { label: `Below ${article(tiers[0].name)}`, tier: null };
+  const top = tiers[tiers.length - 1];
+  if (score > top.points) return { label: `Beyond ${article(top.name)}`, tier: top.name };
+  const upper = /** @type {{ name: string, points: number }} */ (tiers.find((t) => t.points > score));
+  const lower = tiers[tiers.indexOf(upper) - 1];
+  return { label: `Between ${article(lower.name)} and ${article(upper.name)}`, tier: lower.name };
+}
 
 /**
  * Share of the image finished, from 0 to 1.
