@@ -266,6 +266,11 @@ main {
   color: var(--ink);
 }
 
+/* While a test runs the needle tracks the live score closely. */
+.gauge.is-live .gauge__needle {
+  transition: transform 0.3s linear;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gauge__needle {
     transition: none;

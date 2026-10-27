@@ -114,9 +114,8 @@ for (const entry of loadHistory()) best[entry.test] = Math.max(best[entry.test],
 let shown = { ...best };
 /** @type {TestKind} */
 let dialTest = "multi";
-const updateGauge = createGauge(
-  /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("[data-gauge-svg]")))
-);
+const gaugeSvg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("[data-gauge-svg]")));
+const updateGauge = createGauge(gaugeSvg);
 
 function showGauge() {
   const score = shown[dialTest];
@@ -238,6 +237,7 @@ $("[data-detect]").addEventListener("click", async () => {
 /** One full render of the image. @param {TestKind} kind @param {AbortSignal} signal @param {string} passLabel */
 async function renderPass(kind, signal, passLabel) {
   const spec = TESTS[kind];
+  let rays = 0;
   const runThreads = kind === "single" ? 1 : threads;
   const total = Math.ceil(IMAGE.width / 64) * Math.ceil(IMAGE.height / 64);
   let done = 0;
@@ -252,6 +252,7 @@ async function renderPass(kind, signal, passLabel) {
     const elapsed = (performance.now() - start) / 1000;
     elapsedEl.textContent = formatDuration(elapsed);
     leftEl.textContent = formatDuration(remaining(elapsed, progress(done, total)));
+    showLive(kind, points(rays, elapsed));
   }, 250);
 
   try {
@@ -264,6 +265,7 @@ async function renderPass(kind, signal, passLabel) {
         rctx.putImageData(new ImageData(pixels, tile.w, tile.h), tile.x, tile.y);
         octx.clearRect(tile.x, tile.y, tile.w, tile.h);
         done++;
+        rays += info.rays;
         sensors.recordTile(info.thread, info.rays, info.ms);
         const fraction = progress(done, total);
         barEl.style.width = `${fraction * 100}%`;
@@ -277,6 +279,19 @@ async function renderPass(kind, signal, passLabel) {
   }
 }
 
+/**
+ * The score while a test runs: rays traced so far over time so far, so it
+ * climbs from zero and the needle follows.
+ * @param {TestKind} kind
+ * @param {number} live
+ */
+function showLive(kind, live) {
+  $(`[data-score=${kind}]`).textContent = Math.round(live).toLocaleString("en-US");
+  shown = { ...shown, [kind]: live };
+  dialTest = kind;
+  showGauge();
+}
+
 /** @param {TestKind} kind */
 async function start(kind) {
   if (runningTest) {
@@ -287,6 +302,8 @@ async function start(kind) {
   controller = new AbortController();
   setButtons();
   $("[data-result]").hidden = true;
+  gaugeSvg.classList.add("is-live");
+  showLive(kind, 0);
   const minSeconds = kind === "multi" ? Number(durationSelect.value) : 0;
   /** @type {number[]} */
   const passes = [];
@@ -305,7 +322,9 @@ async function start(kind) {
     const summary = stability(passes);
     const score = minSeconds && summary ? Math.round(summary.score) : passes[0];
     best[kind] = Math.max(best[kind], score);
-    showScores();
+    // Settle on this run's result.
+    gaugeSvg.classList.remove("is-live");
+    showLive(kind, score);
     const seconds = (performance.now() - began) / 1000 / passes.length;
     saveToHistory({
       test: kind,
@@ -340,6 +359,9 @@ async function start(kind) {
   } finally {
     runningTest = null;
     controller = null;
+    gaugeSvg.classList.remove("is-live");
+    // A stopped or failed run goes back to your best scores.
+    if (!statusEl.textContent.startsWith("Done")) showScores();
     setButtons();
   }
 }
