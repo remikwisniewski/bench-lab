@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bench Lab · CPU benchmark and system monitor</title>
+    <meta
+      name="description"
+      content="Benchmark your CPU in the browser by path tracing a 3D scene on every core, see your system details and live sensors, and compare your score with everyone else's."
+    />
+    <meta name="theme-color" content="#111317" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <header class="titlebar">
+      <p class="logo"><span class="logo__mark" aria-hidden="true"></span>Bench Lab</p>
+      <nav class="tabs" aria-label="Views">
+        <button class="tab" type="button" data-tab="bench" aria-selected="true">Benchmark</button>
+        <button class="tab" type="button" data-tab="system" aria-selected="false">System</button>
+        <button class="tab" type="button" data-tab="sensors" aria-selected="false">Sensors</button>
+      </nav>
+      <a
+        class="titlebar__link"
+        href="https://github.com/remikwisniewski/bench-lab"
+        target="_blank"
+        rel="noopener"
+        >Source ↗</a
+      >
+    </header>
+
+    <main>
+      <!-- Benchmark -->
+      <section class="bench" data-view="bench" aria-label="Benchmark">
+        <aside class="side">
+          <div class="tests">
+            <div class="test" data-test="multi">
+              <div class="test__head">
+                <p class="test__name">CPU (Multi Core)</p>
+                <button class="start" type="button" data-start="multi">Start</button>
+              </div>
+              <p class="test__score"><span data-score="multi">–</span> <small>pts</small></p>
+            </div>
+            <div class="test" data-test="single">
+              <div class="test__head">
+                <p class="test__name">CPU (Single Core)</p>
+                <button class="start" type="button" data-start="single">Start</button>
+              </div>
+              <p class="test__score"><span data-score="single">–</span> <small>pts</small></p>
+            </div>
+            <div class="test test--ratio">
+              <p class="test__name">MP Ratio</p>
+              <p class="test__score"><span data-ratio>–</span> <small>×</small></p>
+            </div>
+            <label class="duration">
+              <span>Minimum test duration</span>
+              <select data-duration>
+                <option value="0">Off (one pass)</option>
+                <option value="600">10 minutes</option>
+                <option value="1800">30 minutes</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="panel">
+            <h2 class="panel__title">Your system</h2>
+            <dl class="specs">
+              <dt><label for="cpu-name">Processor</label></dt>
+              <dd>
+                <input
+                  id="cpu-name"
+                  class="cpu-name"
+                  type="text"
+                  maxlength="48"
+                  autocomplete="off"
+                  data-cpu-name
+                  placeholder="Name your CPU (optional)"
+                />
+              </dd>
+              <dt>Threads</dt>
+              <dd data-spec="threads">–</dd>
+              <dt>GPU</dt>
+              <dd data-spec="gpu">–</dd>
+              <dt>OS</dt>
+              <dd data-spec="os">–</dd>
+              <dt>Browser</dt>
+              <dd data-spec="browser">–</dd>
+            </dl>
+            <label class="consent">
+              <input type="checkbox" data-consent checked />
+              <span>Add my results to the public ranking (scores and the details above only)</span>
+            </label>
+          </div>
+
+          <div class="panel panel--ranking">
+            <div class="panel__head">
+              <h2 class="panel__title">Ranking</h2>
+              <div class="toggle" role="group" aria-label="Ranking test">
+                <button type="button" data-rank="multi" aria-pressed="true">Multi</button>
+                <button type="button" data-rank="single" aria-pressed="false">Single</button>
+              </div>
+            </div>
+            <ol class="ranking" data-ranking></ol>
+            <p class="ranking__note" data-ranking-note></p>
+          </div>
+        </aside>
+
+        <div class="stage">
+          <div class="viewport">
+            <canvas class="render" width="1280" height="720" data-render></canvas>
+            <canvas class="overlay" width="1280" height="720" data-overlay aria-hidden="true"></canvas>
+            <div class="idle" data-idle>
+              <p class="idle__title">Ready</p>
+              <p>
+                Press <b>Start</b> to path trace the scene on every core. Keep this tab in front while it
+                runs.
+              </p>
+            </div>
+          </div>
+          <div class="statusbar">
+            <div class="statusbar__bar"><span data-bar></span></div>
+            <p class="statusbar__text" data-status aria-live="polite">Idle</p>
+            <p class="statusbar__meta">
+              <span data-elapsed>0:00</span> elapsed · <span data-left>–</span> left
+            </p>
+          </div>
+          <div class="result" data-result hidden>
+            <p class="result__line" data-result-line></p>
+            <div class="result__actions">
+              <button class="ghost" type="button" data-share>Copy result link</button>
+            </div>
+            <div class="passes" data-passes hidden>
+              <p class="passes__title">Score per pass <span data-verdict></span></p>
+              <canvas width="900" height="160" data-passes-chart></canvas>
+            </div>
+          </div>
+        </div>
+
+        <aside class="dock" aria-label="Live sensors">
+          <h2 class="panel__title">Sensors</h2>
+          <table class="sensors sensors--compact" data-sensors-compact></table>
+        </aside>
+      </section>
+
+      <!-- System -->
+      <section class="page" data-view="system" aria-label="System summary" hidden>
+        <div class="page__head">
+          <h1>System summary</h1>
+          <p>
+            Everything this browser will say about your machine. Browsers hide some details, like the CPU
+            model, on purpose.
+          </p>
+        </div>
+        <div class="summary" data-system></div>
+      </section>
+
+      <!-- Sensors -->
+      <section class="page" data-view="sensors" aria-label="Sensors" hidden>
+        <div class="page__head">
+          <h1>Sensors</h1>
+          <p>
+            Live readings, once a second. A web page can't read temperatures, clocks or voltages, so these are
+            things it can measure: render speed per thread, a CPU speed probe, frame rate, lag, memory,
+            network and battery.
+          </p>
+          <button class="ghost" type="button" data-reset>Reset minimum, maximum and average</button>
+        </div>
+        <table class="sensors" data-sensors-full></table>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
