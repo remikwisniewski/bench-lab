@@ -293,18 +293,6 @@ select,
   font-size: 0.85rem;
 }
 
-.consent {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.consent input {
-  accent-color: var(--accent);
-}
-
 .toggle {
   display: flex;
   border: 1px solid var(--line-strong);

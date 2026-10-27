@@ -1,5 +1,5 @@
-// The ranking: reference runs, the public leaderboard and your own results,
-// merged into one list. Works offline: the leaderboard is optional.
+// The ranking: reference runs and your own best results, side by side.
+// Everything stays on this device.
 
 import { REFERENCE } from "../data/reference.js";
 import { deviceLabel } from "../core/device.js";
@@ -31,45 +31,12 @@ export function saveToHistory(entry) {
 }
 
 /**
- * @param {"multi" | "single"} test
- * @returns {Promise<{ entries: { label: string, points: number, detail: string }[], total: number } | null>}
- */
-export async function fetchLeaderboard(test) {
-  try {
-    const res = await fetch(`/api/ranking?test=${test}`, { headers: { accept: "application/json" } });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
-/**
- * @param {import("../core/result.js").Result} result
- * @returns {Promise<{ rank: number, total: number, percentile: number } | null>}
- */
-export async function submitResult(result) {
-  try {
-    const res = await fetch("/api/results", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(result),
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Builds the list shown in the sidebar.
  * @param {"multi" | "single"} test
- * @param {{ entries: { label: string, points: number, detail: string }[] } | null} board
  * @param {{ points: number, label: string } | null} you
  * @returns {RankEntry[]}
  */
-export function buildRanking(test, board, you) {
+export function buildRanking(test, you) {
   /** @type {RankEntry[]} */
   const entries = [
     ...REFERENCE.filter((r) => r.test === test).map((r) => ({
@@ -77,12 +44,6 @@ export function buildRanking(test, board, you) {
       points: r.points,
       detail: r.detail,
       kind: /** @type {const} */ ("reference"),
-    })),
-    ...(board?.entries ?? []).map((e) => ({
-      label: e.label,
-      points: e.points,
-      detail: e.detail,
-      kind: /** @type {const} */ ("other"),
     })),
   ];
   entries.sort((a, b) => b.points - a.points);

@@ -19,14 +19,7 @@ import { collectSystem } from "./ui/system.js";
 import { runHardwareTest } from "./bench/hardware.js";
 import { guessDeviceType } from "./core/hardware.js";
 import { createSensors } from "./ui/sensors.js";
-import {
-  buildRanking,
-  fetchLeaderboard,
-  loadHistory,
-  saveToHistory,
-  submitResult,
-  yourLabel,
-} from "./ui/ranking.js";
+import { buildRanking, loadHistory, saveToHistory, yourLabel } from "./ui/ranking.js";
 import {
   drawBracket,
   drawPasses,
@@ -121,7 +114,7 @@ let rankingTest = "multi";
 const best = { multi: 0, single: 0 };
 for (const entry of loadHistory()) best[entry.test] = Math.max(best[entry.test], entry.points);
 
-async function refreshRanking() {
+function refreshRanking() {
   const test = rankingTest;
   const label = yourLabel({
     cpuName: cpuInput.value,
@@ -132,13 +125,9 @@ async function refreshRanking() {
   const you = best[test] ? { points: best[test], label } : null;
   const list = $("[data-ranking]");
   const note = $("[data-ranking-note]");
-  renderRanking(list, buildRanking(test, null, you));
-  const board = await fetchLeaderboard(test);
-  if (test !== rankingTest) return;
-  renderRanking(list, buildRanking(test, board, you));
-  note.textContent = board
-    ? `${board.total.toLocaleString("en-US")} results submitted. Blue is a reference run.`
-    : "The public ranking couldn't be reached, so this shows reference runs and your own results.";
+  renderRanking(list, buildRanking(test, you));
+  note.textContent =
+    "Blue is a reference run on known hardware. Your results are saved in this browser only.";
 }
 for (const button of $$("[data-rank]")) {
   button.addEventListener("click", () => {
@@ -168,7 +157,6 @@ const barEl = $("[data-bar]");
 const elapsedEl = $("[data-elapsed]");
 const leftEl = $("[data-left]");
 const durationSelect = /** @type {HTMLSelectElement} */ ($("[data-duration]"));
-const consent = /** @type {HTMLInputElement} */ ($("[data-consent]"));
 
 /** @type {AbortController | null} */
 let controller = null;
@@ -342,20 +330,6 @@ async function start(kind) {
       $("[data-verdict]").textContent = `· ${summary.verdict} (${summary.dropPercent}% from best to last)`;
     } else {
       $("[data-passes]").hidden = true;
-    }
-    if (consent.checked) {
-      const placed = await submitResult({
-        test: kind,
-        points: score,
-        seconds,
-        threads,
-        cpuName: cpuInput.value || undefined,
-        gpu: system.gpu,
-        os: system.osLabel,
-        browser: system.browser,
-      });
-      if (placed)
-        line += ` That's faster than ${Math.round(placed.percentile)}% of ${placed.total.toLocaleString("en-US")} submitted results.`;
     }
     $("[data-result-line]").textContent = line;
     $("[data-result]").hidden = false;

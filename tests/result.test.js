@@ -1,46 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NAME_MAX, cleanName, decodeCard, encodeCard, validateResult } from "../src/core/result.js";
-
-const good = {
-  test: "multi",
-  points: 2800,
-  seconds: 31.24,
-  threads: 16,
-  cpuName: "Intel Core i9-9900K",
-  os: "Linux",
-};
-
-describe("validateResult", () => {
-  it("accepts and tidies a real result", () => {
-    const v = validateResult(good);
-    expect(v.ok).toBe(true);
-    expect(v.ok && v.result).toMatchObject({
-      test: "multi",
-      points: 2800,
-      seconds: 31.2,
-      threads: 16,
-      cpuName: "Intel Core i9-9900K",
-    });
-  });
-
-  it("rejects malformed results with reasons", () => {
-    const v = validateResult({ test: "gpu", points: -1, seconds: 0, threads: 0 });
-    expect(v.ok).toBe(false);
-    expect(!v.ok && v.errors).toHaveLength(4);
-    expect(validateResult(null).ok).toBe(false);
-  });
-
-  it("rejects scores no real core could reach", () => {
-    expect(validateResult({ ...good, points: 900 * 16 + 16 }).ok).toBe(false);
-    expect(validateResult({ ...good, test: "single", points: 5000 }).ok).toBe(false);
-    expect(validateResult({ ...good, test: "single", points: 300 }).ok).toBe(true);
-  });
-
-  it("drops empty optional fields", () => {
-    const v = validateResult({ test: "single", points: 280, seconds: 17, threads: 16, cpuName: "   " });
-    expect(v.ok && v.result.cpuName).toBeUndefined();
-  });
-});
+import { NAME_MAX, cleanName, decodeCard, encodeCard } from "../src/core/result.js";
 
 describe("cleanName", () => {
   it("strips markup and odd characters and caps the length", () => {

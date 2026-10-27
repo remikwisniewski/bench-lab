@@ -1,18 +1,6 @@
 // @ts-check
-// A finished result: how it is shared in a link and checked before the
-// leaderboard accepts it. The same checks run in the browser and on the server.
-
-/**
- * @typedef {object} Result
- * @property {"multi" | "single"} test
- * @property {number} points
- * @property {number} seconds
- * @property {number} threads
- * @property {string} [cpuName]
- * @property {string} [gpu]
- * @property {string} [os]
- * @property {string} [browser]
- */
+// Results in share links: tidy names in, and nothing harmful out of a link
+// someone else made.
 
 export const NAME_MAX = 48;
 
@@ -35,47 +23,6 @@ const cleanText = (value, max) =>
         .trim()
         .slice(0, max)
     : "";
-
-/**
- * Checks a result is well formed and physically plausible. Returns the cleaned
- * result, or the reasons it was rejected.
- * @param {unknown} input
- * @returns {{ ok: true, result: Result } | { ok: false, errors: string[] }}
- */
-export function validateResult(input) {
-  const errors = [];
-  const r = /** @type {Record<string, unknown>} */ (input && typeof input === "object" ? input : {});
-  const test = r.test;
-  if (test !== "multi" && test !== "single") errors.push("test must be multi or single");
-  const points = Number(r.points);
-  const seconds = Number(r.seconds);
-  const threads = Number(r.threads);
-  if (!Number.isInteger(points) || points <= 0) errors.push("points must be a positive whole number");
-  if (!Number.isFinite(seconds) || seconds < 1) errors.push("seconds must be at least 1");
-  if (!Number.isInteger(threads) || threads < 1 || threads > 512)
-    errors.push("threads must be between 1 and 512");
-
-  // Plausibility: points per thread far beyond any real core means a forged or broken run.
-  const maxPerThread = 900;
-  if (errors.length === 0) {
-    const perThread = test === "single" ? points : points / threads;
-    if (perThread > maxPerThread) errors.push("score is not plausible for this many threads");
-  }
-  if (errors.length) return { ok: false, errors };
-  return {
-    ok: true,
-    result: {
-      test: /** @type {"multi" | "single"} */ (test),
-      points,
-      seconds: Math.round(seconds * 10) / 10,
-      threads,
-      cpuName: cleanName(r.cpuName) || undefined,
-      gpu: cleanText(r.gpu, 80) || undefined,
-      os: cleanText(r.os, 40) || undefined,
-      browser: cleanText(r.browser, 40) || undefined,
-    },
-  };
-}
 
 /** @param {string} text */
 const toBase64Url = (text) =>

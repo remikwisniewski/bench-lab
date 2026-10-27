@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Benchmark your device in the browser: CPU, all-core scaling, JavaScript vs WebAssembly, memory bandwidth and cache latency, graphics, and sustained load, compared against everyone else who ran it.",
+  "description": "A CPU benchmark and system monitor in the browser: path traces a 3D scene on every core, guesses your hardware from timing tests, and shows live sensors.",
   "license": "MIT",
   "engines": {
     "node": ">=20.19"

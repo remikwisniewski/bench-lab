@@ -37,7 +37,7 @@ export default [
     languageOptions: { globals: { ...globals.worker } },
   },
   {
-    files: ["api/**/*.js", "scripts/**/*.js", "tests/**/*.js", "*.config.js"],
+    files: ["scripts/**/*.js", "tests/**/*.js", "*.config.js"],
     languageOptions: { globals: { ...globals.node } },
   },
   // Turns off style rules that Prettier owns. Must stay last.
